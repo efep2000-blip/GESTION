@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mis Pendientes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --primary: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 15px;
+            padding-bottom: 50px;
+        }
+
+        header {
+            margin-bottom: 20px;
+            padding: 10px 5px;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        /* Formulario de entrada rápida */
+        .input-container {
+            display: flex;
+            gap: 10px;
+            background: var(--card-bg);
+            padding: 8px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+        }
+
+        .input-container input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 12px;
+            font-size: 1rem;
+            background: transparent;
+        }
+
+        .input-container button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .input-container button:active {
+            transform: scale(0.95);
+        }
+
+        /* Lista de tareas */
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-card {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .task-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex: 1;
+        }
+
+        .check-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: transparent;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .task-card.completed .check-btn {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .task-text {
+            font-size: 1rem;
+            font-weight: 500;
+            word-break: break-word;
+            transition: all 0.2s ease;
+        }
+
+        .task-card.completed .task-text {
+            text-decoration: line-through;
+            color: #a0aec0;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: none;
+            color: #cbd5e1;
+            padding: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .delete-btn:active {
+            color: var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #a0aec0;
+            margin-top: 40px;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Mis Pendientes</h1>
+        <p id="task-counter">0 tareas en la lista</p>
+    </header>
+
+    <div class="input-container">
+        <input type="text" id="task-input" placeholder="Escribe un nuevo pendiente..." autocomplete="off">
+        <button id="add-btn"><i class="fa-solid fa-plus"></i></button>
+    </div>
+
+    <div class="task-list" id="task-list">
+        </div>
+
+    <div id="empty-msg" class="empty-state">
+        <i class="fa-solid fa-circle-check" style="font-size: 2rem; margin-bottom: 10px; color: #cbd5e1;"></i>
+        <p>¡Todo al día! No hay pendientes.</p>
+    </div>
+
+    <script>
+        // Elementos del DOM
+        const taskInput = document.getElementById('task-input');
+        const addBtn = document.getElementById('add-btn');
+        const taskList = document.getElementById('task-list');
+        const emptyMsg = document.getElementById('empty-msg');
+        const taskCounter = document.getElementById('task-counter');
+
+        // Cargar tareas desde LocalStorage al iniciar
+        let tasks = JSON.parse(localStorage.getItem('my_tasks')) || [];
+
+        function saveAndRender() {
+            localStorage.setItem('my_tasks', JSON.stringify(tasks));
+            renderTasks();
+        }
+
+        function renderTasks() {
+            taskList.innerHTML = '';
+            
+            if (tasks.length === 0) {
+                emptyMsg.style.display = 'block';
+                taskCounter.innerText = '0 tareas en la lista';
+                return;
+            }
+            
+            emptyMsg.style.display = 'none';
+            const pendingCount = tasks.filter(t => !t.completed).length;
+            taskCounter.innerText = `${pendingCount} tarea${pendingCount !== 1 ? 's' : ''} por terminar`;
+
+            tasks.forEach((task, index) => {
+                const card = document.createElement('div');
+                card.className = `task-card ${task.completed ? 'completed' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="task-left" onclick="toggleTask(${index})">
+                        <button class="check-btn"><i class="fa-solid fa-check"></i></button>
+                        <span class="task-text">${task.text}</span>
+                    </div>
+                    <button class="delete-btn" onclick="deleteTask(event, ${index})">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                taskList.appendChild(card);
+            });
+        }
+
+        function addTask() {
+            const text = taskInput.value.trim();
+            if (text === '') return;
+            
+            tasks.unshift({ text: text, completed: false }); // Las nuevas arriba
+            taskInput.value = '';
+            taskInput.focus();
+            saveAndRender();
+        }
+
+        function toggleTask(index) {
+            tasks[index].completed = !tasks[index].completed;
+            // Mover las completadas al final automáticamente para limpiar la vista
+            if (tasks[index].completed) {
+                const [completedTask] = tasks.splice(index, 1);
+                tasks.push(completedTask);
+            } else {
+                const [pendingTask] = tasks.splice(index, 1);
+                tasks.unshift(pendingTask);
+            }
+            saveAndRender();
+        }
+
+        function deleteTask(event, index) {
+            event.stopPropagation(); // Evita que se dispare el toggle de la tarjeta
+            tasks.splice(index, 1);
+            saveAndRender();
+        }
+
+        // Eventos
+        addBtn.addEventListener('click', addTask);
+        taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
+        });
+
+        // Renderizado inicial
+        renderTasks();
+    </script>
+</body>
+</html>
