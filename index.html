@@ -14,6 +14,7 @@
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
+            --edit-mode: #06b6d4;
         }
 
         * {
@@ -28,7 +29,7 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             padding: 15px;
-            padding-bottom: 80px; /* Espacio para el footer */
+            padding-bottom: 80px;
         }
 
         header {
@@ -39,7 +40,6 @@
         header h1 { font-size: 1.4rem; font-weight: 700; }
         header p { font-size: 0.85rem; color: #718096; margin-bottom: 12px; }
 
-        /* Contenedor de Filtros Rápidos */
         .filter-container {
             display: flex;
             gap: 8px;
@@ -65,7 +65,7 @@
             color: white;
         }
 
-        /* Contenedor de entrada */
+        /* Contenedor de entrada con cambio visual si se está editando */
         .input-box {
             background: var(--card-bg);
             padding: 8px;
@@ -75,6 +75,12 @@
             position: sticky;
             top: 10px;
             z-index: 100;
+            border: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .input-box.editing-active {
+            border-color: var(--edit-mode);
         }
 
         .input-row {
@@ -131,6 +137,11 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .add-btn.edit-state {
+            background: var(--edit-mode);
         }
 
         /* Lista y Tarjetas */
@@ -145,6 +156,7 @@
             justify-content: space-between;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             touch-action: manipulation;
+            gap: 8px;
         }
 
         .task-left {
@@ -153,6 +165,7 @@
             gap: 12px;
             flex: 1;
             cursor: pointer;
+            min-width: 0; /* Evita desborde de texto */
         }
 
         .check-btn {
@@ -175,8 +188,8 @@
             color: white;
         }
 
-        .task-info { display: flex; flex-direction: column; gap: 4px; }
-        .task-text { font-size: 0.95rem; font-weight: 500; }
+        .task-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .task-text { font-size: 0.95rem; font-weight: 500; word-break: break-word; }
         .task-card.completed .task-text { text-decoration: line-through; color: #a0aec0; }
         
         .task-time {
@@ -188,14 +201,24 @@
             gap: 4px;
         }
 
-        .delete-btn {
+        .actions-right {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
             background: transparent;
             border: none;
             color: #cbd5e1;
             padding: 8px;
             font-size: 1rem;
+            cursor: pointer;
             touch-action: manipulation;
         }
+
+        .action-btn.edit:active { color: var(--edit-mode); }
+        .action-btn.delete:active { color: var(--danger); }
 
         .task-card.alarm-active {
             border: 2px solid var(--danger);
@@ -217,7 +240,6 @@
             font-size: 0.9rem;
         }
 
-        /* Footer con Copia de Seguridad */
         footer {
             position: fixed;
             bottom: 0;
@@ -262,14 +284,14 @@
         </div>
     </header>
 
-    <div class="input-box">
+    <div class="input-box" id="input-box">
         <div class="input-row">
             <input type="text" id="task-input" placeholder="Nuevo pendiente..." autocomplete="off">
             <div class="time-trigger" id="time-icon">
                 <i class="fa-regular fa-clock"></i>
                 <input type="datetime-local" id="task-datetime" onchange="updateTimeIcon()">
             </div>
-            <button class="add-btn" id="add-btn"><i class="fa-solid fa-plus"></i></button>
+            <button class="add-btn" id="add-btn"><i class="fa-solid fa-plus" id="add-icon"></i></button>
         </div>
     </div>
 
@@ -294,13 +316,18 @@
         const taskDatetime = document.getElementById('task-datetime');
         const timeIcon = document.getElementById('time-icon');
         const addBtn = document.getElementById('add-btn');
+        const addIcon = document.getElementById('add-icon');
+        const inputBox = document.getElementById('input-box');
         const taskList = document.getElementById('task-list');
         const emptyMsg = document.getElementById('empty-msg');
         const taskCounter = document.getElementById('task-counter');
 
         let audioCtx = null;
-        let currentFilter = 'all'; // Estados: all, today, done
+        let currentFilter = 'all'; 
         let tasks = JSON.parse(localStorage.getItem('my_tasks_v2')) || [];
+        
+        // Variable global para rastrear si estamos editando
+        let editIndex = null;
 
         function updateTimeIcon() {
             if (taskDatetime.value) { timeIcon.classList.add('active'); } 
@@ -315,13 +342,15 @@
         }
 
         function saveAndRender() {
-            // Organizar por proximidad de tiempo
-            tasks.sort((a, b) => {
-                if (a.completed !== b.completed) return a.completed - b.completed; 
-                if (!a.datetime) return 1; 
-                if (!b.datetime) return -1;
-                return new Date(a.datetime) - new Date(b.datetime); 
-            });
+            // Solo ordenamos de forma automática si NO estamos editando, para evitar saltos raros
+            if (editIndex === null) {
+                tasks.sort((a, b) => {
+                    if (a.completed !== b.completed) return a.completed - b.completed; 
+                    if (!a.datetime) return 1; 
+                    if (!b.datetime) return -1;
+                    return new Date(a.datetime) - new Date(b.datetime); 
+                });
+            }
 
             localStorage.setItem('my_tasks_v2', JSON.stringify(tasks));
             renderTasks();
@@ -330,19 +359,17 @@
         function renderTasks() {
             taskList.innerHTML = '';
             const ahora = new Date();
-            const hoyStr = ahora.toISOString().split('T')[0]; // YYYY-MM-DD local aproximado
+            const hoyStr = ahora.toISOString().split('T')[0]; 
             
-            // Filtrar las tareas antes de pintar la pantalla
             let filteredTasks = tasks.filter(task => {
                 if (currentFilter === 'done') return task.completed;
                 if (currentFilter === 'today') {
                     if (!task.datetime) return false;
                     return task.datetime.startsWith(hoyStr) && !task.completed;
                 }
-                return true; // Para "all" (Todos los pendientes)
+                return true; 
             });
 
-            // Actualizar contadores globales en la interfaz
             const pendingTotal = tasks.filter(t => !t.completed).length;
             taskCounter.innerText = `${pendingTotal} pendiente${pendingTotal !== 1 ? 's' : ''} en total`;
 
@@ -353,7 +380,6 @@
             emptyMsg.style.display = 'none';
 
             filteredTasks.forEach((task) => {
-                // Encontrar el índice real dentro de la matriz original
                 const originalIndex = tasks.indexOf(task);
                 const card = document.createElement('div');
                 
@@ -378,25 +404,61 @@
                             ${timeLabel}
                         </div>
                     </div>
-                    <button class="delete-btn" onclick="deleteTask(event, ${originalIndex})">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
+                    <div class="actions-right">
+                        <button class="action-btn edit" onclick="startEdit(event, ${originalIndex})">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="action-btn delete" onclick="deleteTask(event, ${originalIndex})">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
                 `;
                 taskList.appendChild(card);
             });
         }
 
-        function addTask() {
+        // Iniciar el modo edición
+        function startEdit(event, index) {
+            event.stopPropagation();
+            editIndex = index;
+            
+            // Cargar los datos actuales en el formulario superior
+            taskInput.value = tasks[index].text;
+            taskDatetime.value = tasks[index].datetime || '';
+            updateTimeIcon();
+            
+            // Cambiar aspecto visual de la barra de entrada
+            inputBox.classList.add('editing-active');
+            addBtn.classList.add('edit-state');
+            addIcon.className = "fa-solid fa-floppy-disk"; // Icono de disco para guardar
+            
+            taskInput.focus();
+        }
+
+        function handleSubmit() {
             const text = taskInput.value.trim();
             if (text === '') return;
 
             if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
 
-            tasks.push({
-                text: text,
-                datetime: taskDatetime.value || null,
-                completed: false
-            });
+            if (editIndex !== null) {
+                // Estamos editando una tarea existente
+                tasks[editIndex].text = text;
+                tasks[editIndex].datetime = taskDatetime.value || null;
+                
+                // Salir del modo edición
+                editIndex = null;
+                inputBox.classList.remove('editing-active');
+                addBtn.classList.remove('edit-state');
+                addIcon.className = "fa-solid fa-plus";
+            } else {
+                // Estamos creando una tarea nueva
+                tasks.push({
+                    text: text,
+                    datetime: taskDatetime.value || null,
+                    completed: false
+                });
+            }
 
             taskInput.value = '';
             taskDatetime.value = '';
@@ -405,36 +467,43 @@
         }
 
         function toggleTask(index) {
+            // Si se completa una tarea que se estaba editando, cancelamos la edición primero
+            if (editIndex === index) cancelEdit();
             tasks[index].completed = !tasks[index].completed;
             saveAndRender();
         }
 
         function deleteTask(event, index) {
             event.stopPropagation();
+            if (editIndex === index) cancelEdit();
             if(confirm("¿Eliminar este pendiente?")) {
                 tasks.splice(index, 1);
                 saveAndRender();
             }
         }
 
-        // --- MEJORA 4: FUNCIONES DE COPIA DE SEGURIDAD ---
+        function cancelEdit() {
+            editIndex = null;
+            taskInput.value = '';
+            taskDatetime.value = '';
+            timeIcon.classList.remove('active');
+            inputBox.classList.remove('editing-active');
+            addBtn.classList.remove('edit-state');
+            addIcon.className = "fa-solid fa-plus";
+        }
+
+        // Funciones de Copia de Seguridad
         function exportBackup() {
-            if (tasks.length === 0) {
-                alert("No hay tareas para respaldar.");
-                return;
-            }
+            if (tasks.length === 0) { alert("No hay tareas para respaldar."); return; }
             const dataStr = btoa(unescape(encodeURIComponent(JSON.stringify(tasks))));
-            
-            // Creamos un cuadro temporal para copiar el texto cifrado
             const tempInput = document.createElement("input");
             document.body.appendChild(tempInput);
             tempInput.value = dataStr;
             tempInput.select();
-            tempInput.setSelectionRange(0, 99999); // Para móviles
+            tempInput.setSelectionRange(0, 99999); 
             document.execCommand("copy");
             document.body.removeChild(tempInput);
-
-            alert("¡Copia de seguridad copiada al portapapeles!\nGuárdala en tus notas de WhatsApp o correo electrónico.");
+            alert("¡Copia de seguridad copiada!\nPégala en tus notas de WhatsApp.");
         }
 
         function importBackup() {
@@ -443,15 +512,14 @@
             try {
                 const decodedData = JSON.parse(decodeURIComponent(escape(atob(code))));
                 if (Array.isArray(decodedData)) {
-                    if (confirm(`Se van a cargar ${decodedData.length} tareas. Esto reemplazará tu lista actual. ¿Continuar?`)) {
+                    if (confirm(`Se cargarán ${decodedData.length} tareas. Reemplazará la lista actual. ¿Continuar?`)) {
                         tasks = decodedData;
+                        cancelEdit();
                         saveAndRender();
-                        alert("¡Lista restaurada con éxito!");
+                        alert("¡Lista restaurada!");
                     }
-                } else { alert("El código no es válido."); }
-            } catch (e) {
-                alert("Error al procesar el código. Asegúrate de copiarlo completo.");
-            }
+                } else { alert("Código no válido."); }
+            } catch (e) { alert("Error al procesar el código."); }
         }
 
         function playBeep() {
@@ -481,8 +549,8 @@
             if (sonar) { playBeep(); renderTasks(); }
         }, 2000);
 
-        addBtn.addEventListener('click', addTask);
-        taskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
+        addBtn.addEventListener('click', handleSubmit);
+        taskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSubmit(); });
 
         renderTasks();
     </script>
