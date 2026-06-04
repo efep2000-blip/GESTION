@@ -28,7 +28,7 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             padding: 15px;
-            padding-bottom: 50px;
+            padding-bottom: 80px; /* Espacio para el footer */
         }
 
         header {
@@ -37,9 +37,35 @@
         }
 
         header h1 { font-size: 1.4rem; font-weight: 700; }
-        header p { font-size: 0.85rem; color: #718096; }
+        header p { font-size: 0.85rem; color: #718096; margin-bottom: 12px; }
 
-        /* Contenedor de entrada simplificado */
+        /* Contenedor de Filtros Rápidos */
+        .filter-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            background: #e2e8f0;
+            border: none;
+            padding: 8px 5px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Contenedor de entrada */
         .input-box {
             background: var(--card-bg);
             padding: 8px;
@@ -66,7 +92,6 @@
             background: transparent;
         }
 
-        /* selectores de hora discretos */
         .time-trigger {
             background: #f1f5f9;
             border: none;
@@ -172,15 +197,12 @@
             touch-action: manipulation;
         }
 
-        /* Estado de alarma disparada */
         .task-card.alarm-active {
             border: 2px solid var(--danger);
             animation: pulse-border 1s infinite;
         }
 
-        .task-card.alarm-active .task-time {
-            color: var(--danger);
-        }
+        .task-card.alarm-active .task-time { color: var(--danger); }
 
         @keyframes pulse-border {
             0% { background-color: #ffffff; }
@@ -194,6 +216,37 @@
             margin-top: 40px;
             font-size: 0.9rem;
         }
+
+        /* Footer con Copia de Seguridad */
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            border-top: 1px solid #e2e8f0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.03);
+            z-index: 200;
+        }
+
+        .backup-btn {
+            background: transparent;
+            border: none;
+            color: #718096;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .backup-btn i { font-size: 1.1rem; color: #4a5568; }
     </style>
 </head>
 <body>
@@ -201,18 +254,21 @@
     <header>
         <h1>Mis Pendientes</h1>
         <p id="task-counter">0 tareas en la lista</p>
+        
+        <div class="filter-container">
+            <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">Todos</button>
+            <button class="filter-btn" id="filter-today" onclick="setFilter('today')">Hoy</button>
+            <button class="filter-btn" id="filter-done" onclick="setFilter('done')">Realizados</button>
+        </div>
     </header>
 
     <div class="input-box">
         <div class="input-row">
             <input type="text" id="task-input" placeholder="Nuevo pendiente..." autocomplete="off">
-            
-            <!-- Botón discreto de fecha/hora -->
             <div class="time-trigger" id="time-icon">
                 <i class="fa-regular fa-clock"></i>
                 <input type="datetime-local" id="task-datetime" onchange="updateTimeIcon()">
             </div>
-            
             <button class="add-btn" id="add-btn"><i class="fa-solid fa-plus"></i></button>
         </div>
     </div>
@@ -221,8 +277,17 @@
 
     <div id="empty-msg" class="empty-state">
         <i class="fa-solid fa-circle-check" style="font-size: 1.8rem; margin-bottom: 8px; color: #cbd5e1;"></i>
-        <p>¡Todo al día!</p>
+        <p>No hay tareas para mostrar.</p>
     </div>
+
+    <footer>
+        <button class="backup-btn" onclick="exportBackup()">
+            <i class="fa-solid fa-cloud-arrow-down"></i> Respaldar Lista
+        </button>
+        <button class="backup-btn" onclick="importBackup()">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Restaurar Lista
+        </button>
+    </footer>
 
     <script>
         const taskInput = document.getElementById('task-input');
@@ -233,26 +298,29 @@
         const emptyMsg = document.getElementById('empty-msg');
         const taskCounter = document.getElementById('task-counter');
 
-        // Contexto de Audio Web para la alarma (así no dependemos de archivos externos)
         let audioCtx = null;
-
+        let currentFilter = 'all'; // Estados: all, today, done
         let tasks = JSON.parse(localStorage.getItem('my_tasks_v2')) || [];
 
         function updateTimeIcon() {
-            if (taskDatetime.value) {
-                timeIcon.classList.add('active');
-            } else {
-                timeIcon.classList.remove('active');
-            }
+            if (taskDatetime.value) { timeIcon.classList.add('active'); } 
+            else { timeIcon.classList.remove('active'); }
+        }
+
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`filter-${filterType}`).classList.add('active');
+            renderTasks();
         }
 
         function saveAndRender() {
-            // 1. Organizar por proximidad de tiempo
+            // Organizar por proximidad de tiempo
             tasks.sort((a, b) => {
-                if (a.completed !== b.completed) return a.completed - b.completed; // Completadas abajo
-                if (!a.datetime) return 1; // Sin fecha al final
+                if (a.completed !== b.completed) return a.completed - b.completed; 
+                if (!a.datetime) return 1; 
                 if (!b.datetime) return -1;
-                return new Date(a.datetime) - new Date(b.datetime); // Más cercana primero
+                return new Date(a.datetime) - new Date(b.datetime); 
             });
 
             localStorage.setItem('my_tasks_v2', JSON.stringify(tasks));
@@ -261,21 +329,34 @@
 
         function renderTasks() {
             taskList.innerHTML = '';
-            if (tasks.length === 0) {
+            const ahora = new Date();
+            const hoyStr = ahora.toISOString().split('T')[0]; // YYYY-MM-DD local aproximado
+            
+            // Filtrar las tareas antes de pintar la pantalla
+            let filteredTasks = tasks.filter(task => {
+                if (currentFilter === 'done') return task.completed;
+                if (currentFilter === 'today') {
+                    if (!task.datetime) return false;
+                    return task.datetime.startsWith(hoyStr) && !task.completed;
+                }
+                return true; // Para "all" (Todos los pendientes)
+            });
+
+            // Actualizar contadores globales en la interfaz
+            const pendingTotal = tasks.filter(t => !t.completed).length;
+            taskCounter.innerText = `${pendingTotal} pendiente${pendingTotal !== 1 ? 's' : ''} en total`;
+
+            if (filteredTasks.length === 0) {
                 emptyMsg.style.display = 'block';
-                taskCounter.innerText = '0 tareas';
                 return;
             }
             emptyMsg.style.display = 'none';
-            const pending = tasks.filter(t => !t.completed).length;
-            taskCounter.innerText = `${pending} pendiente${pending !== 1 ? 's' : ''}`;
 
-            const ahora = new Date().getTime();
-
-            tasks.forEach((task, index) => {
+            filteredTasks.forEach((task) => {
+                // Encontrar el índice real dentro de la matriz original
+                const originalIndex = tasks.indexOf(task);
                 const card = document.createElement('div');
                 
-                // Verificar si la alarma debe estar activa
                 let isAlarmed = false;
                 let timeLabel = '';
                 
@@ -284,22 +365,20 @@
                     const fechaFormat = new Date(task.datetime).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'});
                     timeLabel = `<span class="task-time"><i class="fa-solid fa-bell"></i> ${fechaFormat}</span>`;
                     
-                    if (!task.completed && ahora >= tTime) {
-                        isAlarmed = true;
-                    }
+                    if (!task.completed && ahora.getTime() >= tTime) { isAlarmed = true; }
                 }
 
                 card.className = `task-card ${task.completed ? 'completed' : ''} ${isAlarmed ? 'alarm-active' : ''}`;
                 
                 card.innerHTML = `
-                    <div class="task-left" onclick="toggleTask(${index})">
+                    <div class="task-left" onclick="toggleTask(${originalIndex})">
                         <button class="check-btn"><i class="fa-solid fa-check"></i></button>
                         <div class="task-info">
                             <span class="task-text">${task.text}</span>
                             ${timeLabel}
                         </div>
                     </div>
-                    <button class="delete-btn" onclick="deleteTask(event, ${index})">
+                    <button class="delete-btn" onclick="deleteTask(event, ${originalIndex})">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 `;
@@ -311,7 +390,6 @@
             const text = taskInput.value.trim();
             if (text === '') return;
 
-            // Inicializar el audio en la primera interacción del usuario (regla de navegadores móviles)
             if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
 
             tasks.push({
@@ -333,25 +411,62 @@
 
         function deleteTask(event, index) {
             event.stopPropagation();
-            tasks.splice(index, 1);
-            saveAndRender();
+            if(confirm("¿Eliminar este pendiente?")) {
+                tasks.splice(index, 1);
+                saveAndRender();
+            }
         }
 
-        // Sonido nativo de alarma sin archivos externos
+        // --- MEJORA 4: FUNCIONES DE COPIA DE SEGURIDAD ---
+        function exportBackup() {
+            if (tasks.length === 0) {
+                alert("No hay tareas para respaldar.");
+                return;
+            }
+            const dataStr = btoa(unescape(encodeURIComponent(JSON.stringify(tasks))));
+            
+            // Creamos un cuadro temporal para copiar el texto cifrado
+            const tempInput = document.createElement("input");
+            document.body.appendChild(tempInput);
+            tempInput.value = dataStr;
+            tempInput.select();
+            tempInput.setSelectionRange(0, 99999); // Para móviles
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+
+            alert("¡Copia de seguridad copiada al portapapeles!\nGuárdala en tus notas de WhatsApp o correo electrónico.");
+        }
+
+        function importBackup() {
+            const code = prompt("Pega aquí el código de tu copia de seguridad:");
+            if (!code) return;
+            try {
+                const decodedData = JSON.parse(decodeURIComponent(escape(atob(code))));
+                if (Array.isArray(decodedData)) {
+                    if (confirm(`Se van a cargar ${decodedData.length} tareas. Esto reemplazará tu lista actual. ¿Continuar?`)) {
+                        tasks = decodedData;
+                        saveAndRender();
+                        alert("¡Lista restaurada con éxito!");
+                    }
+                } else { alert("El código no es válido."); }
+            } catch (e) {
+                alert("Error al procesar el código. Asegúrate de copiarlo completo.");
+            }
+        }
+
         function playBeep() {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sine';
-            osc.frequency.value = 880; // Tono alto
+            osc.frequency.value = 880;
             gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.15); // Duración corta
+            osc.stop(audioCtx.currentTime + 0.15);
         }
 
-        // Bucle de chequeo constante (Cada 2 segundos revisa alarmas)
         setInterval(() => {
             if (tasks.length === 0) return;
             const ahora = new Date().getTime();
@@ -359,16 +474,11 @@
 
             tasks.forEach(t => {
                 if (t.datetime && !t.completed) {
-                    if (ahora >= new Date(t.datetime).getTime()) {
-                        sonar = true;
-                    }
+                    if (ahora >= new Date(t.datetime).getTime()) { sonar = true; }
                 }
             });
 
-            if (sonar) {
-                playBeep();
-                renderTasks(); // Refresca para pintar de rojo la tarjeta
-            }
+            if (sonar) { playBeep(); renderTasks(); }
         }, 2000);
 
         addBtn.addEventListener('click', addTask);
