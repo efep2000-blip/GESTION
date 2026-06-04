@@ -13,13 +13,14 @@
             --primary: #4f46e5;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -31,106 +32,116 @@
         }
 
         header {
-            margin-bottom: 20px;
-            padding: 10px 5px;
+            margin-bottom: 15px;
+            padding: 5px;
         }
 
-        header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
+        header h1 { font-size: 1.4rem; font-weight: 700; }
+        header p { font-size: 0.85rem; color: #718096; }
 
-        header p {
-            font-size: 0.9rem;
-            color: #718096;
-        }
-
-        /* Formulario de entrada rápida */
-        .input-container {
-            display: flex;
-            gap: 10px;
+        /* Contenedor de entrada simplificado */
+        .input-box {
             background: var(--card-bg);
             padding: 8px;
             border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             margin-bottom: 20px;
             position: sticky;
             top: 10px;
             z-index: 100;
         }
 
-        .input-container input {
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-row input[type="text"] {
             flex: 1;
             border: none;
             outline: none;
-            padding: 12px;
+            padding: 10px;
             font-size: 1rem;
             background: transparent;
         }
 
-        .input-container button {
-            background: var(--primary);
-            color: white;
+        /* selectores de hora discretos */
+        .time-trigger {
+            background: #f1f5f9;
             border: none;
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            font-size: 1.2rem;
+            color: #64748b;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: transform 0.1s ease;
+            position: relative;
         }
 
-        .input-container button:active {
-            transform: scale(0.95);
+        .time-trigger input[type="datetime-local"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
         }
 
-        /* Lista de tareas */
-        .task-list {
+        .time-trigger.active {
+            background: #e0e7ff;
+            color: var(--primary);
+        }
+
+        .add-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            font-size: 1.1rem;
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
         }
+
+        /* Lista y Tarjetas */
+        .task-list { display: flex; flex-direction: column; gap: 10px; }
 
         .task-card {
             background: var(--card-bg);
-            padding: 16px;
-            border-radius: 16px;
+            padding: 14px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            transition: all 0.2s ease;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            touch-action: manipulation;
         }
 
         .task-left {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
             flex: 1;
+            cursor: pointer;
         }
 
         .check-btn {
-            width: 26px;
-            height: 26px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             border: 2px solid #cbd5e1;
             background: transparent;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
             color: transparent;
-            font-size: 0.8rem;
-            transition: all 0.2s ease;
+            font-size: 0.75rem;
+            flex-shrink: 0;
         }
 
         .task-card.completed .check-btn {
@@ -139,16 +150,17 @@
             color: white;
         }
 
-        .task-text {
-            font-size: 1rem;
-            font-weight: 500;
-            word-break: break-word;
-            transition: all 0.2s ease;
-        }
-
-        .task-card.completed .task-text {
-            text-decoration: line-through;
-            color: #a0aec0;
+        .task-info { display: flex; flex-direction: column; gap: 4px; }
+        .task-text { font-size: 0.95rem; font-weight: 500; }
+        .task-card.completed .task-text { text-decoration: line-through; color: #a0aec0; }
+        
+        .task-time {
+            font-size: 0.75rem;
+            color: var(--warning);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .delete-btn {
@@ -156,20 +168,31 @@
             border: none;
             color: #cbd5e1;
             padding: 8px;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: color 0.2s;
+            font-size: 1rem;
+            touch-action: manipulation;
         }
 
-        .delete-btn:active {
+        /* Estado de alarma disparada */
+        .task-card.alarm-active {
+            border: 2px solid var(--danger);
+            animation: pulse-border 1s infinite;
+        }
+
+        .task-card.alarm-active .task-time {
             color: var(--danger);
+        }
+
+        @keyframes pulse-border {
+            0% { background-color: #ffffff; }
+            50% { background-color: #fee2e2; }
+            100% { background-color: #ffffff; }
         }
 
         .empty-state {
             text-align: center;
             color: #a0aec0;
             margin-top: 40px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -180,56 +203,101 @@
         <p id="task-counter">0 tareas en la lista</p>
     </header>
 
-    <div class="input-container">
-        <input type="text" id="task-input" placeholder="Escribe un nuevo pendiente..." autocomplete="off">
-        <button id="add-btn"><i class="fa-solid fa-plus"></i></button>
+    <div class="input-box">
+        <div class="input-row">
+            <input type="text" id="task-input" placeholder="Nuevo pendiente..." autocomplete="off">
+            
+            <!-- Botón discreto de fecha/hora -->
+            <div class="time-trigger" id="time-icon">
+                <i class="fa-regular fa-clock"></i>
+                <input type="datetime-local" id="task-datetime" onchange="updateTimeIcon()">
+            </div>
+            
+            <button class="add-btn" id="add-btn"><i class="fa-solid fa-plus"></i></button>
+        </div>
     </div>
 
-    <div class="task-list" id="task-list">
-        </div>
+    <div class="task-list" id="task-list"></div>
 
     <div id="empty-msg" class="empty-state">
-        <i class="fa-solid fa-circle-check" style="font-size: 2rem; margin-bottom: 10px; color: #cbd5e1;"></i>
-        <p>¡Todo al día! No hay pendientes.</p>
+        <i class="fa-solid fa-circle-check" style="font-size: 1.8rem; margin-bottom: 8px; color: #cbd5e1;"></i>
+        <p>¡Todo al día!</p>
     </div>
 
     <script>
-        // Elementos del DOM
         const taskInput = document.getElementById('task-input');
+        const taskDatetime = document.getElementById('task-datetime');
+        const timeIcon = document.getElementById('time-icon');
         const addBtn = document.getElementById('add-btn');
         const taskList = document.getElementById('task-list');
         const emptyMsg = document.getElementById('empty-msg');
         const taskCounter = document.getElementById('task-counter');
 
-        // Cargar tareas desde LocalStorage al iniciar
-        let tasks = JSON.parse(localStorage.getItem('my_tasks')) || [];
+        // Contexto de Audio Web para la alarma (así no dependemos de archivos externos)
+        let audioCtx = null;
+
+        let tasks = JSON.parse(localStorage.getItem('my_tasks_v2')) || [];
+
+        function updateTimeIcon() {
+            if (taskDatetime.value) {
+                timeIcon.classList.add('active');
+            } else {
+                timeIcon.classList.remove('active');
+            }
+        }
 
         function saveAndRender() {
-            localStorage.setItem('my_tasks', JSON.stringify(tasks));
+            // 1. Organizar por proximidad de tiempo
+            tasks.sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed - b.completed; // Completadas abajo
+                if (!a.datetime) return 1; // Sin fecha al final
+                if (!b.datetime) return -1;
+                return new Date(a.datetime) - new Date(b.datetime); // Más cercana primero
+            });
+
+            localStorage.setItem('my_tasks_v2', JSON.stringify(tasks));
             renderTasks();
         }
 
         function renderTasks() {
             taskList.innerHTML = '';
-            
             if (tasks.length === 0) {
                 emptyMsg.style.display = 'block';
-                taskCounter.innerText = '0 tareas en la lista';
+                taskCounter.innerText = '0 tareas';
                 return;
             }
-            
             emptyMsg.style.display = 'none';
-            const pendingCount = tasks.filter(t => !t.completed).length;
-            taskCounter.innerText = `${pendingCount} tarea${pendingCount !== 1 ? 's' : ''} por terminar`;
+            const pending = tasks.filter(t => !t.completed).length;
+            taskCounter.innerText = `${pending} pendiente${pending !== 1 ? 's' : ''}`;
+
+            const ahora = new Date().getTime();
 
             tasks.forEach((task, index) => {
                 const card = document.createElement('div');
-                card.className = `task-card ${task.completed ? 'completed' : ''}`;
+                
+                // Verificar si la alarma debe estar activa
+                let isAlarmed = false;
+                let timeLabel = '';
+                
+                if (task.datetime) {
+                    const tTime = new Date(task.datetime).getTime();
+                    const fechaFormat = new Date(task.datetime).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'});
+                    timeLabel = `<span class="task-time"><i class="fa-solid fa-bell"></i> ${fechaFormat}</span>`;
+                    
+                    if (!task.completed && ahora >= tTime) {
+                        isAlarmed = true;
+                    }
+                }
+
+                card.className = `task-card ${task.completed ? 'completed' : ''} ${isAlarmed ? 'alarm-active' : ''}`;
                 
                 card.innerHTML = `
                     <div class="task-left" onclick="toggleTask(${index})">
                         <button class="check-btn"><i class="fa-solid fa-check"></i></button>
-                        <span class="task-text">${task.text}</span>
+                        <div class="task-info">
+                            <span class="task-text">${task.text}</span>
+                            ${timeLabel}
+                        </div>
                     </div>
                     <button class="delete-btn" onclick="deleteTask(event, ${index})">
                         <i class="fa-solid fa-trash-can"></i>
@@ -242,39 +310,70 @@
         function addTask() {
             const text = taskInput.value.trim();
             if (text === '') return;
-            
-            tasks.unshift({ text: text, completed: false }); // Las nuevas arriba
+
+            // Inicializar el audio en la primera interacción del usuario (regla de navegadores móviles)
+            if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+
+            tasks.push({
+                text: text,
+                datetime: taskDatetime.value || null,
+                completed: false
+            });
+
             taskInput.value = '';
-            taskInput.focus();
+            taskDatetime.value = '';
+            timeIcon.classList.remove('active');
             saveAndRender();
         }
 
         function toggleTask(index) {
             tasks[index].completed = !tasks[index].completed;
-            // Mover las completadas al final automáticamente para limpiar la vista
-            if (tasks[index].completed) {
-                const [completedTask] = tasks.splice(index, 1);
-                tasks.push(completedTask);
-            } else {
-                const [pendingTask] = tasks.splice(index, 1);
-                tasks.unshift(pendingTask);
-            }
             saveAndRender();
         }
 
         function deleteTask(event, index) {
-            event.stopPropagation(); // Evita que se dispare el toggle de la tarjeta
+            event.stopPropagation();
             tasks.splice(index, 1);
             saveAndRender();
         }
 
-        // Eventos
-        addBtn.addEventListener('click', addTask);
-        taskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addTask();
-        });
+        // Sonido nativo de alarma sin archivos externos
+        function playBeep() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = 880; // Tono alto
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15); // Duración corta
+        }
 
-        // Renderizado inicial
+        // Bucle de chequeo constante (Cada 2 segundos revisa alarmas)
+        setInterval(() => {
+            if (tasks.length === 0) return;
+            const ahora = new Date().getTime();
+            let sonar = false;
+
+            tasks.forEach(t => {
+                if (t.datetime && !t.completed) {
+                    if (ahora >= new Date(t.datetime).getTime()) {
+                        sonar = true;
+                    }
+                }
+            });
+
+            if (sonar) {
+                playBeep();
+                renderTasks(); // Refresca para pintar de rojo la tarjeta
+            }
+        }, 2000);
+
+        addBtn.addEventListener('click', addTask);
+        taskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
+
         renderTasks();
     </script>
 </body>
