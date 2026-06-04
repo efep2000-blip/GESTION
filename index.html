@@ -15,8 +15,6 @@
             --primary: #6366f1;        
             --success: #10b981;        
             --danger: #ef4444;         
-            --warning: #fbbf24; /* Color base hoy */       
-            --edit-mode: #06b6d4;      
             --border-color: #2d3748;   
             --input-placeholder: #718096;
             --filter-inactive-bg: #2d3748;
@@ -26,9 +24,13 @@
             --pulse-bg-start: #1e1e1e;
             --pulse-bg-mid: #3b1414;
             
-            /* Nuevas variables para distinguir días futuros */
-            --tomorrow-color: #34d399;   /* Verde claro para mañana */
-            --future-color: #22d3ee;     /* Cian para el futuro lejano */
+            /* NUEVA ESCALA DE COLORES TEMPORALES (MODO OSCURO) */
+            --color-today: #fbbf24;       /* Amarillo: Hoy */
+            --color-tomorrow: #34d399;    /* Verde: Mañana */
+            --color-overmorrow: #22d3ee;  /* Cian: Pasado mañana */
+            --color-short-term: #3b82f6;  /* Azul: Corto plazo (4-7 días) */
+            --color-long-term: #a855f7;   /* Morado: Mediano/Largo plazo (+7 días) */
+            --edit-mode: #06b6d4;      
         }
 
         /* Variaciones para MODO CLARO */
@@ -40,8 +42,6 @@
             --primary: #4f46e5;        
             --success: #10b981;        
             --danger: #ef4444;         
-            --warning: #b45309; /* Amarillo oscuro para contraste en fondo claro */        
-            --edit-mode: #06b6d4;      
             --border-color: #e2e8f0;   
             --input-placeholder: #a0aec0;
             --filter-inactive-bg: #e2e8f0;
@@ -51,8 +51,13 @@
             --pulse-bg-start: #ffffff;
             --pulse-bg-mid: #fee2e2;
             
-            --tomorrow-color: #059669;   
-            --future-color: #0891b2;     
+            /* COLORES TEMPORALES AJUSTADOS PARA MODO CLARO (MÁS CONTRASTE) */
+            --color-today: #b45309;       
+            --color-tomorrow: #059669;    
+            --color-overmorrow: #0891b2;  
+            --color-short-term: #1d4ed8;  
+            --color-long-term: #7e22ce;   
+            --edit-mode: #06b6d4;      
         }
 
         * {
@@ -255,7 +260,6 @@
         .task-text { font-size: 0.95rem; font-weight: 500; color: var(--text-main); word-break: break-word; }
         .task-card.completed .task-text { text-decoration: line-through; color: var(--text-muted); }
         
-        /* Estilos base de las etiquetas de tiempo */
         .task-time {
             font-size: 0.75rem;
             font-weight: 600;
@@ -263,10 +267,13 @@
             align-items: center;
             gap: 4px;
         }
-        /* Clases dinámicas aplicadas mediante JS */
-        .task-time.time-today { color: var(--warning); }
-        .task-time.time-tomorrow { color: var(--tomorrow-color); }
-        .task-time.time-future { color: var(--future-color); }
+        
+        /* Clases CSS mapeadas a las nuevas variables de color */
+        .task-time.t-today { color: var(--color-today); }
+        .task-time.t-tomorrow { color: var(--color-tomorrow); }
+        .task-time.t-overmorrow { color: var(--color-overmorrow); }
+        .task-time.t-short-term { color: var(--color-short-term); }
+        .task-time.t-long-term { color: var(--color-long-term); }
 
         .actions-right {
             display: flex;
@@ -380,7 +387,7 @@
         <button class="backup-btn" onclick="exportBackup()">
             <i class="fa-solid fa-cloud-arrow-down"></i> Respaldar Todo
         </button>
-        <button class="backup-btn" purge-highlight" onclick="backupAndPurgeDone()">
+        <button class="backup-btn purge-highlight" onclick="backupAndPurgeDone()">
             <i class="fa-solid fa-broom"></i> Respaldar y Limpiar
         </button>
         <button class="backup-btn" onclick="importBackup()">
@@ -455,21 +462,21 @@
             const ahora = new Date();
             
             const offset = ahora.getTimezoneOffset() * 60000;
-            const hoyStr = new Date(ahora.getTime() - offset).toISOString().split('T')[0];
             
-            // Calculamos la cadena de fecha para el día de mañana (formato YYYY-MM-DD)
-            const mañana = new Date(ahora.getTime() - offset);
-            mañana.setDate(mañana.getDate() + 1);
-            const mañanaStr = mañana.toISOString().split('T')[0];
+            // Creamos las fechas base limpias (en la zona horaria local) para la comparación
+            const baseDate = new Date(ahora.getTime() - offset);
+            
+            const hoyStr = baseDate.toISOString().split('T')[0];
+            
+            baseDate.setDate(baseDate.getDate() + 1);
+            const mañanaStr = baseDate.toISOString().split('T')[0];
+            
+            baseDate.setDate(baseDate.getDate() + 1);
+            const pasadoMañanaStr = baseDate.toISOString().split('T')[0];
 
             let filteredTasks = tasks.filter(task => {
                 if (currentFilter === 'done') return task.completed;
-                
-                if (currentFilter === 'all') {
-                    if (task.completed) return false;
-                    // CORRECCIÓN: Ahora en "Todos" se incluye absolutamente todo lo pendiente (sin importar la fecha)
-                    return true;
-                }
+                if (currentFilter === 'all') return !task.completed;
                 if (currentFilter === 'today') {
                     if (task.completed || !task.datetime) return false;
                     return task.datetime.startsWith(hoyStr);
@@ -497,14 +504,29 @@
                     const tTime = new Date(task.datetime).getTime();
                     const fechaFormat = new Date(task.datetime).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'});
                     
-                    // MEJORA: Determinación dinámica de clases de color según el día
-                    let colorClass = 'time-future'; // Por defecto cian para el futuro
+                    // LÓGICA DE CLASIFICACIÓN AVANZADA
+                    let colorClass = '';
+                    
                     if (task.datetime.startsWith(hoyStr)) {
-                        colorClass = 'time-today'; // Amarillo para hoy
+                        colorClass = 't-today';        // Amarillo (Hoy)
                     } else if (task.datetime.startsWith(mañanaStr)) {
-                        colorClass = 'time-tomorrow'; // Verde para mañana
-                    } else if (new Date(task.datetime) < ahora && !task.completed) {
-                        colorClass = 'time-today'; // Las atrasadas se quedan en color amarillo/alerta
+                        colorClass = 't-tomorrow';     // Verde (Mañana)
+                    } else if (task.datetime.startsWith(pasadoMañanaStr)) {
+                        colorClass = 't-overmorrow';   // Cian (Pasado Mañana)
+                    } else {
+                        // Cálculo exacto de la diferencia en días para corto y largo plazo
+                        const fechaTarea = new Date(task.datetime.split('T')[0] + 'T00:00:00');
+                        const fechaHoy = new Date(hoyStr + 'T00:00:00');
+                        const diffTiempo = fechaTarea - fechaHoy;
+                        const diffDias = Math.ceil(diffTiempo / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDias > 2 && diffDias <= 7) {
+                            colorClass = 't-short-term'; // Azul (Corto plazo: días 4 a 7)
+                        } else if (diffDias > 7) {
+                            colorClass = 't-long-term';  // Morado (Mediano/Largo plazo: +7 días)
+                        } else {
+                            colorClass = 't-today';      // Respaldo para tareas atrasadas de días anteriores
+                        }
                     }
 
                     timeLabel = `<span class="task-time ${colorClass}"><i class="fa-solid fa-bell"></i> ${fechaFormat}</span>`;
