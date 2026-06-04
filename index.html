@@ -6,15 +6,18 @@
     <title>Mis Pendientes</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* MEJORA: Colores fijos en Modo Oscuro */
         :root {
-            --bg-color: #f4f7f6;
-            --card-bg: #ffffff;
-            --text-main: #2d3748;
-            --primary: #4f46e5;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --edit-mode: #06b6d4;
+            --bg-color: #121212;       /* Fondo oscuro profundo */
+            --card-bg: #1e1e1e;        /* Gris oscuro para tarjetas y cajas */
+            --text-main: #e2e8f0;      /* Texto principal casi blanco */
+            --text-muted: #a0aec0;     /* Texto secundario gris claro */
+            --primary: #6366f1;        /* Índigo brillante para botones principales */
+            --success: #10b981;        /* Verde para completados */
+            --danger: #ef4444;         /* Rojo para eliminar/alertas */
+            --warning: #fbbf24;        /* Amarillo para las horas de las alarmas */
+            --edit-mode: #06b6d4;      /* Cian para el modo edición */
+            --border-color: #2d3748;   /* Gris para bordes sutiles */
         }
 
         * {
@@ -29,7 +32,7 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             padding: 15px;
-            padding-bottom: 80px;
+            padding-bottom: 90px;
         }
 
         header {
@@ -37,8 +40,8 @@
             padding: 5px;
         }
 
-        header h1 { font-size: 1.4rem; font-weight: 700; }
-        header p { font-size: 0.85rem; color: #718096; margin-bottom: 12px; }
+        header h1 { font-size: 1.4rem; font-weight: 700; color: #ffffff; }
+        header p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; }
 
         .filter-container {
             display: flex;
@@ -48,13 +51,13 @@
 
         .filter-btn {
             flex: 1;
-            background: #e2e8f0;
+            background: #2d3748;
             border: none;
             padding: 8px 5px;
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 600;
-            color: #4a5568;
+            color: var(--text-muted);
             cursor: pointer;
             transition: all 0.2s;
             touch-action: manipulation;
@@ -62,15 +65,15 @@
 
         .filter-btn.active {
             background: var(--primary);
-            color: white;
+            color: #ffffff;
         }
 
-        /* Contenedor de entrada con cambio visual si se está editando */
+        /* Contenedor de entrada con bordes adaptados al modo oscuro */
         .input-box {
             background: var(--card-bg);
             padding: 8px;
             border-radius: 16px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
             margin-bottom: 20px;
             position: sticky;
             top: 10px;
@@ -96,12 +99,18 @@
             padding: 10px;
             font-size: 1rem;
             background: transparent;
+            color: var(--text-main);
+        }
+
+        /* Marcador de posición (placeholder) adaptado */
+        .input-row input[type="text"]::placeholder {
+            color: #718096;
         }
 
         .time-trigger {
-            background: #f1f5f9;
+            background: #2d3748;
             border: none;
-            color: #64748b;
+            color: var(--text-muted);
             width: 40px;
             height: 40px;
             border-radius: 10px;
@@ -120,9 +129,24 @@
             cursor: pointer;
         }
 
+        /* Estilo del selector de fecha en algunos dispositivos nativos */
+        .time-trigger input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            background: transparent;
+            bottom: 0;
+            color: transparent;
+            cursor: pointer;
+            height: auto;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: auto;
+        }
+
         .time-trigger.active {
-            background: #e0e7ff;
-            color: var(--primary);
+            background: rgba(99, 102, 241, 0.2);
+            color: #9333ea;
+            border: 1px solid var(--primary);
         }
 
         .add-btn {
@@ -137,14 +161,13 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background-color 0.2s;
         }
 
         .add-btn.edit-state {
             background: var(--edit-mode);
         }
 
-        /* Lista y Tarjetas */
+        /* Lista y Tarjetas en tonos oscuros */
         .task-list { display: flex; flex-direction: column; gap: 10px; }
 
         .task-card {
@@ -154,9 +177,10 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             touch-action: manipulation;
             gap: 8px;
+            border: 1px solid #2d3748;
         }
 
         .task-left {
@@ -165,14 +189,14 @@
             gap: 12px;
             flex: 1;
             cursor: pointer;
-            min-width: 0; /* Evita desborde de texto */
+            min-width: 0;
         }
 
         .check-btn {
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            border: 2px solid #cbd5e1;
+            border: 2px solid #4a5568;
             background: transparent;
             display: flex;
             align-items: center;
@@ -189,8 +213,8 @@
         }
 
         .task-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-        .task-text { font-size: 0.95rem; font-weight: 500; word-break: break-word; }
-        .task-card.completed .task-text { text-decoration: line-through; color: #a0aec0; }
+        .task-text { font-size: 0.95rem; font-weight: 500; color: var(--text-main); word-break: break-word; }
+        .task-card.completed .task-text { text-decoration: line-through; color: #718096; }
         
         .task-time {
             font-size: 0.75rem;
@@ -210,54 +234,58 @@
         .action-btn {
             background: transparent;
             border: none;
-            color: #cbd5e1;
+            color: #4a5568;
             padding: 8px;
             font-size: 1rem;
             cursor: pointer;
             touch-action: manipulation;
         }
 
+        .action-btn.edit { color: #a0aec0; }
+        .action-btn.delete { color: #a0aec0; }
         .action-btn.edit:active { color: var(--edit-mode); }
         .action-btn.delete:active { color: var(--danger); }
 
+        /* Alarma disparada adaptada para que resalte en la oscuridad */
         .task-card.alarm-active {
             border: 2px solid var(--danger);
-            animation: pulse-border 1s infinite;
+            animation: pulse-border 1.2s infinite;
         }
 
-        .task-card.alarm-active .task-time { color: var(--danger); }
+        .task-card.alarm-active .task-time { color: #fca5a5; }
 
         @keyframes pulse-border {
-            0% { background-color: #ffffff; }
-            50% { background-color: #fee2e2; }
-            100% { background-color: #ffffff; }
+            0% { background-color: #1e1e1e; }
+            50% { background-color: #3b1414; }
+            100% { background-color: #1e1e1e; }
         }
 
         .empty-state {
             text-align: center;
-            color: #a0aec0;
+            color: #4a5568;
             margin-top: 40px;
             font-size: 0.9rem;
         }
 
+        /* Footer Oscuro */
         footer {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: #ffffff;
-            padding: 10px;
+            background: #1a1a1a;
+            padding: 12px;
             display: flex;
             justify-content: space-around;
-            border-top: 1px solid #e2e8f0;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.03);
+            border-top: 1px solid var(--border-color);
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
             z-index: 200;
         }
 
         .backup-btn {
             background: transparent;
             border: none;
-            color: #718096;
+            color: var(--text-muted);
             font-size: 0.75rem;
             font-weight: 600;
             display: flex;
@@ -268,7 +296,7 @@
             touch-action: manipulation;
         }
 
-        .backup-btn i { font-size: 1.1rem; color: #4a5568; }
+        .backup-btn i { font-size: 1.1rem; color: var(--text-main); }
     </style>
 </head>
 <body>
@@ -298,7 +326,7 @@
     <div class="task-list" id="task-list"></div>
 
     <div id="empty-msg" class="empty-state">
-        <i class="fa-solid fa-circle-check" style="font-size: 1.8rem; margin-bottom: 8px; color: #cbd5e1;"></i>
+        <i class="fa-solid fa-circle-check" style="font-size: 1.8rem; margin-bottom: 8px; color: #2d3748;"></i>
         <p>No hay tareas para mostrar.</p>
     </div>
 
@@ -325,8 +353,6 @@
         let audioCtx = null;
         let currentFilter = 'all'; 
         let tasks = JSON.parse(localStorage.getItem('my_tasks_v2')) || [];
-        
-        // Variable global para rastrear si estamos editando
         let editIndex = null;
 
         function updateTimeIcon() {
@@ -342,7 +368,6 @@
         }
 
         function saveAndRender() {
-            // Solo ordenamos de forma automática si NO estamos editando, para evitar saltos raros
             if (editIndex === null) {
                 tasks.sort((a, b) => {
                     if (a.completed !== b.completed) return a.completed - b.completed; 
@@ -351,7 +376,6 @@
                     return new Date(a.datetime) - new Date(b.datetime); 
                 });
             }
-
             localStorage.setItem('my_tasks_v2', JSON.stringify(tasks));
             renderTasks();
         }
@@ -417,21 +441,15 @@
             });
         }
 
-        // Iniciar el modo edición
         function startEdit(event, index) {
             event.stopPropagation();
             editIndex = index;
-            
-            // Cargar los datos actuales en el formulario superior
             taskInput.value = tasks[index].text;
             taskDatetime.value = tasks[index].datetime || '';
             updateTimeIcon();
-            
-            // Cambiar aspecto visual de la barra de entrada
             inputBox.classList.add('editing-active');
             addBtn.classList.add('edit-state');
-            addIcon.className = "fa-solid fa-floppy-disk"; // Icono de disco para guardar
-            
+            addIcon.className = "fa-solid fa-floppy-disk";
             taskInput.focus();
         }
 
@@ -442,17 +460,13 @@
             if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
 
             if (editIndex !== null) {
-                // Estamos editando una tarea existente
                 tasks[editIndex].text = text;
                 tasks[editIndex].datetime = taskDatetime.value || null;
-                
-                // Salir del modo edición
                 editIndex = null;
                 inputBox.classList.remove('editing-active');
                 addBtn.classList.remove('edit-state');
                 addIcon.className = "fa-solid fa-plus";
             } else {
-                // Estamos creando una tarea nueva
                 tasks.push({
                     text: text,
                     datetime: taskDatetime.value || null,
@@ -467,7 +481,6 @@
         }
 
         function toggleTask(index) {
-            // Si se completa una tarea que se estaba editando, cancelamos la edición primero
             if (editIndex === index) cancelEdit();
             tasks[index].completed = !tasks[index].completed;
             saveAndRender();
@@ -492,7 +505,6 @@
             addIcon.className = "fa-solid fa-plus";
         }
 
-        // Funciones de Copia de Seguridad
         function exportBackup() {
             if (tasks.length === 0) { alert("No hay tareas para respaldar."); return; }
             const dataStr = btoa(unescape(encodeURIComponent(JSON.stringify(tasks))));
