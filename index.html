@@ -15,7 +15,7 @@
             --primary: #6366f1;        
             --success: #10b981;        
             --danger: #ef4444;         
-            --warning: #fbbf24;        
+            --warning: #fbbf24; /* Color base hoy */       
             --edit-mode: #06b6d4;      
             --border-color: #2d3748;   
             --input-placeholder: #718096;
@@ -25,6 +25,10 @@
             --empty-icon-color: #2d3748;
             --pulse-bg-start: #1e1e1e;
             --pulse-bg-mid: #3b1414;
+            
+            /* Nuevas variables para distinguir días futuros */
+            --tomorrow-color: #34d399;   /* Verde claro para mañana */
+            --future-color: #22d3ee;     /* Cian para el futuro lejano */
         }
 
         /* Variaciones para MODO CLARO */
@@ -36,7 +40,7 @@
             --primary: #4f46e5;        
             --success: #10b981;        
             --danger: #ef4444;         
-            --warning: #f59e0b;        
+            --warning: #b45309; /* Amarillo oscuro para contraste en fondo claro */        
             --edit-mode: #06b6d4;      
             --border-color: #e2e8f0;   
             --input-placeholder: #a0aec0;
@@ -46,6 +50,9 @@
             --empty-icon-color: #cbd5e1;
             --pulse-bg-start: #ffffff;
             --pulse-bg-mid: #fee2e2;
+            
+            --tomorrow-color: #059669;   
+            --future-color: #0891b2;     
         }
 
         * {
@@ -60,7 +67,7 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             padding: 15px;
-            padding-bottom: 90px;
+            padding-bottom: 95px; 
             transition: background-color 0.3s, color 0.3s;
         }
 
@@ -73,7 +80,6 @@
         header h1 { font-size: 1.4rem; font-weight: 700; }
         header p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; }
 
-        /* MEJORA: Botón para cambiar el tema */
         .theme-toggle-btn {
             position: absolute;
             top: 5px;
@@ -249,14 +255,18 @@
         .task-text { font-size: 0.95rem; font-weight: 500; color: var(--text-main); word-break: break-word; }
         .task-card.completed .task-text { text-decoration: line-through; color: var(--text-muted); }
         
+        /* Estilos base de las etiquetas de tiempo */
         .task-time {
             font-size: 0.75rem;
-            color: var(--warning);
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 4px;
         }
+        /* Clases dinámicas aplicadas mediante JS */
+        .task-time.time-today { color: var(--warning); }
+        .task-time.time-tomorrow { color: var(--tomorrow-color); }
+        .task-time.time-future { color: var(--future-color); }
 
         .actions-right {
             display: flex;
@@ -282,7 +292,7 @@
             animation: pulse-border 1.2s infinite;
         }
 
-        .task-card.alarm-active .task-time { color: var(--danger); }
+        .task-card.alarm-active .task-time { color: var(--danger) !important; }
 
         @keyframes pulse-border {
             0% { background-color: var(--pulse-bg-start); }
@@ -303,7 +313,7 @@
             left: 0;
             right: 0;
             background: var(--footer-bg);
-            padding: 12px;
+            padding: 12px 6px;
             display: flex;
             justify-content: space-around;
             border-top: 1px solid var(--border-color);
@@ -316,7 +326,7 @@
             background: transparent;
             border: none;
             color: var(--text-muted);
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 600;
             display: flex;
             flex-direction: column;
@@ -324,9 +334,11 @@
             gap: 4px;
             cursor: pointer;
             touch-action: manipulation;
+            flex: 1;
         }
 
         .backup-btn i { font-size: 1.1rem; color: var(--text-main); }
+        .backup-btn.purge-highlight i { color: var(--danger); }
     </style>
 </head>
 <body>
@@ -335,7 +347,6 @@
         <h1>Mis Pendientes</h1>
         <p id="task-counter">0 tareas en la lista</p>
         
-        <!-- Botón de cambio de tema -->
         <button class="theme-toggle-btn" id="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema">
             <i class="fa-solid fa-sun" id="theme-icon"></i>
         </button>
@@ -367,7 +378,10 @@
 
     <footer>
         <button class="backup-btn" onclick="exportBackup()">
-            <i class="fa-solid fa-cloud-arrow-down"></i> Respaldar Lista
+            <i class="fa-solid fa-cloud-arrow-down"></i> Respaldar Todo
+        </button>
+        <button class="backup-btn" purge-highlight" onclick="backupAndPurgeDone()">
+            <i class="fa-solid fa-broom"></i> Respaldar y Limpiar
         </button>
         <button class="backup-btn" onclick="importBackup()">
             <i class="fa-solid fa-cloud-arrow-up"></i> Restaurar Lista
@@ -391,17 +405,15 @@
         let tasks = JSON.parse(localStorage.getItem('my_tasks_v2')) || [];
         let editIndex = null;
 
-        // --- MANEJO DEL TEMA (CLARO / OSCURO) ---
-        // Recuperamos el tema guardado o usamos oscuro por defecto
         let currentTheme = localStorage.getItem('app_theme') || 'dark';
         
         function applyTheme() {
             if (currentTheme === 'light') {
                 document.documentElement.classList.add('light-theme');
-                themeIcon.className = "fa-solid fa-moon"; // Si está claro, el botón muestra la luna para pasar a oscuro
+                themeIcon.className = "fa-solid fa-moon";
             } else {
                 document.documentElement.classList.remove('light-theme');
-                themeIcon.className = "fa-solid fa-sun"; // Si está oscuro, el botón muestra el sol para pasar a claro
+                themeIcon.className = "fa-solid fa-sun";
             }
         }
         
@@ -411,10 +423,8 @@
             applyTheme();
         }
         
-        // Inicializar tema al cargar la página
         applyTheme();
 
-        // --- LÓGICA DE LA APLICACIÓN ---
         function updateTimeIcon() {
             if (taskDatetime.value) { timeIcon.classList.add('active'); } 
             else { timeIcon.classList.remove('active'); }
@@ -445,14 +455,20 @@
             const ahora = new Date();
             
             const offset = ahora.getTimezoneOffset() * 60000;
-            const hoyStr = new Date(ahora.getTime() - offset).toISOString().split('T')[0]; 
+            const hoyStr = new Date(ahora.getTime() - offset).toISOString().split('T')[0];
             
+            // Calculamos la cadena de fecha para el día de mañana (formato YYYY-MM-DD)
+            const mañana = new Date(ahora.getTime() - offset);
+            mañana.setDate(mañana.getDate() + 1);
+            const mañanaStr = mañana.toISOString().split('T')[0];
+
             let filteredTasks = tasks.filter(task => {
                 if (currentFilter === 'done') return task.completed;
+                
                 if (currentFilter === 'all') {
                     if (task.completed) return false;
-                    if (!task.datetime) return true;
-                    return task.datetime.startsWith(hoyStr) || new Date(task.datetime) < ahora;
+                    // CORRECCIÓN: Ahora en "Todos" se incluye absolutamente todo lo pendiente (sin importar la fecha)
+                    return true;
                 }
                 if (currentFilter === 'today') {
                     if (task.completed || !task.datetime) return false;
@@ -480,7 +496,18 @@
                 if (task.datetime) {
                     const tTime = new Date(task.datetime).getTime();
                     const fechaFormat = new Date(task.datetime).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'});
-                    timeLabel = `<span class="task-time"><i class="fa-solid fa-bell"></i> ${fechaFormat}</span>`;
+                    
+                    // MEJORA: Determinación dinámica de clases de color según el día
+                    let colorClass = 'time-future'; // Por defecto cian para el futuro
+                    if (task.datetime.startsWith(hoyStr)) {
+                        colorClass = 'time-today'; // Amarillo para hoy
+                    } else if (task.datetime.startsWith(mañanaStr)) {
+                        colorClass = 'time-tomorrow'; // Verde para mañana
+                    } else if (new Date(task.datetime) < ahora && !task.completed) {
+                        colorClass = 'time-today'; // Las atrasadas se quedan en color amarillo/alerta
+                    }
+
+                    timeLabel = `<span class="task-time ${colorClass}"><i class="fa-solid fa-bell"></i> ${fechaFormat}</span>`;
                     
                     if (!task.completed && ahora.getTime() >= tTime) { isAlarmed = true; }
                 }
@@ -572,17 +599,41 @@
             addIcon.className = "fa-solid fa-plus";
         }
 
-        function exportBackup() {
-            if (tasks.length === 0) { alert("No hay tareas para respaldar."); return; }
-            const dataStr = btoa(unescape(encodeURIComponent(JSON.stringify(tasks))));
+        function getBackupString() {
+            return btoa(unescape(encodeURIComponent(JSON.stringify(tasks))));
+        }
+
+        function copyToClipboard(text) {
             const tempInput = document.createElement("input");
             document.body.appendChild(tempInput);
-            tempInput.value = dataStr;
+            tempInput.value = text;
             tempInput.select();
             tempInput.setSelectionRange(0, 99999); 
             document.execCommand("copy");
             document.body.removeChild(tempInput);
-            alert("¡Copia de seguridad copiada!\nPégala en tus notas de WhatsApp.");
+        }
+
+        function exportBackup() {
+            if (tasks.length === 0) { alert("No hay tareas para respaldar."); return; }
+            const dataStr = getBackupString();
+            copyToClipboard(dataStr);
+            alert("¡Copia de seguridad completa copiada!\nPégala en tus notas de WhatsApp.");
+        }
+
+        function backupAndPurgeDone() {
+            const completedTasksCount = tasks.filter(t => t.completed).length;
+            if (completedTasksCount === 0) {
+                alert("No hay tareas realizadas para limpiar.");
+                return;
+            }
+            if (confirm(`Se va a generar una copia de seguridad y luego se eliminarán las ${completedTasksCount} tareas realizadas. ¿Deseas continuar?`)) {
+                const fullBackupCode = getBackupString();
+                copyToClipboard(fullBackupCode);
+                tasks = tasks.filter(t => !t.completed);
+                cancelEdit();
+                saveAndRender();
+                alert(`¡Operación Exitosa!\n1. Se copió el respaldo completo al portapapeles.\n2. Se eliminaron las ${completedTasksCount} tareas realizadas.`);
+            }
         }
 
         function importBackup() {
