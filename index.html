@@ -6,18 +6,46 @@
     <title>Mis Pendientes</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* MEJORA: Colores fijos en Modo Oscuro */
+        /* Paleta por defecto: MODO OSCURO */
         :root {
-            --bg-color: #121212;       /* Fondo oscuro profundo */
-            --card-bg: #1e1e1e;        /* Gris oscuro para tarjetas y cajas */
-            --text-main: #e2e8f0;      /* Texto principal casi blanco */
-            --text-muted: #a0aec0;     /* Texto secundario gris claro */
-            --primary: #6366f1;        /* Índigo brillante para botones principales */
-            --success: #10b981;        /* Verde para completados */
-            --danger: #ef4444;         /* Rojo para eliminar/alertas */
-            --warning: #fbbf24;        /* Amarillo para las horas de las alarmas */
-            --edit-mode: #06b6d4;      /* Cian para el modo edición */
-            --border-color: #2d3748;   /* Gris para bordes sutiles */
+            --bg-color: #121212;       
+            --card-bg: #1e1e1e;        
+            --text-main: #e2e8f0;      
+            --text-muted: #a0aec0;     
+            --primary: #6366f1;        
+            --success: #10b981;        
+            --danger: #ef4444;         
+            --warning: #fbbf24;        
+            --edit-mode: #06b6d4;      
+            --border-color: #2d3748;   
+            --input-placeholder: #718096;
+            --filter-inactive-bg: #2d3748;
+            --time-trigger-bg: #2d3748;
+            --footer-bg: #1a1a1a;
+            --empty-icon-color: #2d3748;
+            --pulse-bg-start: #1e1e1e;
+            --pulse-bg-mid: #3b1414;
+        }
+
+        /* Variaciones para MODO CLARO */
+        :root.light-theme {
+            --bg-color: #f4f7f6;       
+            --card-bg: #ffffff;        
+            --text-main: #2d3748;      
+            --text-muted: #718096;     
+            --primary: #4f46e5;        
+            --success: #10b981;        
+            --danger: #ef4444;         
+            --warning: #f59e0b;        
+            --edit-mode: #06b6d4;      
+            --border-color: #e2e8f0;   
+            --input-placeholder: #a0aec0;
+            --filter-inactive-bg: #e2e8f0;
+            --time-trigger-bg: #f1f5f9;
+            --footer-bg: #ffffff;
+            --empty-icon-color: #cbd5e1;
+            --pulse-bg-start: #ffffff;
+            --pulse-bg-mid: #fee2e2;
         }
 
         * {
@@ -33,15 +61,36 @@
             color: var(--text-main);
             padding: 15px;
             padding-bottom: 90px;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         header {
             margin-bottom: 15px;
             padding: 5px;
+            position: relative;
         }
 
-        header h1 { font-size: 1.4rem; font-weight: 700; color: #ffffff; }
+        header h1 { font-size: 1.4rem; font-weight: 700; }
         header p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; }
+
+        /* MEJORA: Botón para cambiar el tema */
+        .theme-toggle-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--filter-inactive-bg);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: background-color 0.3s, color 0.3s;
+        }
 
         .filter-container {
             display: flex;
@@ -51,7 +100,7 @@
 
         .filter-btn {
             flex: 1;
-            background: #2d3748;
+            background: var(--filter-inactive-bg);
             border: none;
             padding: 8px 5px;
             border-radius: 20px;
@@ -68,18 +117,17 @@
             color: #ffffff;
         }
 
-        /* Contenedor de entrada con bordes adaptados al modo oscuro */
         .input-box {
             background: var(--card-bg);
             padding: 8px;
             border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             margin-bottom: 20px;
             position: sticky;
             top: 10px;
             z-index: 100;
             border: 2px solid transparent;
-            transition: border-color 0.3s;
+            transition: border-color 0.3s, background-color 0.3s;
         }
 
         .input-box.editing-active {
@@ -102,13 +150,12 @@
             color: var(--text-main);
         }
 
-        /* Marcador de posición (placeholder) adaptado */
         .input-row input[type="text"]::placeholder {
-            color: #718096;
+            color: var(--input-placeholder);
         }
 
         .time-trigger {
-            background: #2d3748;
+            background: var(--time-trigger-bg);
             border: none;
             color: var(--text-muted);
             width: 40px;
@@ -129,23 +176,9 @@
             cursor: pointer;
         }
 
-        /* Estilo del selector de fecha en algunos dispositivos nativos */
-        .time-trigger input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-            background: transparent;
-            bottom: 0;
-            color: transparent;
-            cursor: pointer;
-            height: auto;
-            left: 0;
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: auto;
-        }
-
         .time-trigger.active {
             background: rgba(99, 102, 241, 0.2);
-            color: #9333ea;
+            color: var(--primary);
             border: 1px solid var(--primary);
         }
 
@@ -167,7 +200,6 @@
             background: var(--edit-mode);
         }
 
-        /* Lista y Tarjetas en tonos oscuros */
         .task-list { display: flex; flex-direction: column; gap: 10px; }
 
         .task-card {
@@ -177,10 +209,11 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             touch-action: manipulation;
             gap: 8px;
-            border: 1px solid #2d3748;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .task-left {
@@ -196,7 +229,7 @@
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            border: 2px solid #4a5568;
+            border: 2px solid var(--border-color);
             background: transparent;
             display: flex;
             align-items: center;
@@ -214,7 +247,7 @@
 
         .task-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
         .task-text { font-size: 0.95rem; font-weight: 500; color: var(--text-main); word-break: break-word; }
-        .task-card.completed .task-text { text-decoration: line-through; color: #718096; }
+        .task-card.completed .task-text { text-decoration: line-through; color: var(--text-muted); }
         
         .task-time {
             font-size: 0.75rem;
@@ -234,52 +267,49 @@
         .action-btn {
             background: transparent;
             border: none;
-            color: #4a5568;
+            color: var(--text-muted);
             padding: 8px;
             font-size: 1rem;
             cursor: pointer;
             touch-action: manipulation;
         }
 
-        .action-btn.edit { color: #a0aec0; }
-        .action-btn.delete { color: #a0aec0; }
         .action-btn.edit:active { color: var(--edit-mode); }
         .action-btn.delete:active { color: var(--danger); }
 
-        /* Alarma disparada adaptada para que resalte en la oscuridad */
         .task-card.alarm-active {
             border: 2px solid var(--danger);
             animation: pulse-border 1.2s infinite;
         }
 
-        .task-card.alarm-active .task-time { color: #fca5a5; }
+        .task-card.alarm-active .task-time { color: var(--danger); }
 
         @keyframes pulse-border {
-            0% { background-color: #1e1e1e; }
-            50% { background-color: #3b1414; }
-            100% { background-color: #1e1e1e; }
+            0% { background-color: var(--pulse-bg-start); }
+            50% { background-color: var(--pulse-bg-mid); }
+            100% { background-color: var(--pulse-bg-start); }
         }
 
         .empty-state {
             text-align: center;
-            color: #4a5568;
+            color: var(--text-muted);
             margin-top: 40px;
             font-size: 0.9rem;
         }
 
-        /* Footer Oscuro */
         footer {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: #1a1a1a;
+            background: var(--footer-bg);
             padding: 12px;
             display: flex;
             justify-content: space-around;
             border-top: 1px solid var(--border-color);
-            box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
             z-index: 200;
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .backup-btn {
@@ -305,6 +335,11 @@
         <h1>Mis Pendientes</h1>
         <p id="task-counter">0 tareas en la lista</p>
         
+        <!-- Botón de cambio de tema -->
+        <button class="theme-toggle-btn" id="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema">
+            <i class="fa-solid fa-sun" id="theme-icon"></i>
+        </button>
+
         <div class="filter-container">
             <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">Todos</button>
             <button class="filter-btn" id="filter-today" onclick="setFilter('today')">Hoy</button>
@@ -326,7 +361,7 @@
     <div class="task-list" id="task-list"></div>
 
     <div id="empty-msg" class="empty-state">
-        <i class="fa-solid fa-circle-check" style="font-size: 1.8rem; margin-bottom: 8px; color: #2d3748;"></i>
+        <i class="fa-solid fa-circle-check" id="empty-icon" style="font-size: 1.8rem; margin-bottom: 8px; color: var(--empty-icon-color);"></i>
         <p>No hay tareas para mostrar.</p>
     </div>
 
@@ -349,12 +384,37 @@
         const taskList = document.getElementById('task-list');
         const emptyMsg = document.getElementById('empty-msg');
         const taskCounter = document.getElementById('task-counter');
+        const themeIcon = document.getElementById('theme-icon');
 
         let audioCtx = null;
         let currentFilter = 'all'; 
         let tasks = JSON.parse(localStorage.getItem('my_tasks_v2')) || [];
         let editIndex = null;
 
+        // --- MANEJO DEL TEMA (CLARO / OSCURO) ---
+        // Recuperamos el tema guardado o usamos oscuro por defecto
+        let currentTheme = localStorage.getItem('app_theme') || 'dark';
+        
+        function applyTheme() {
+            if (currentTheme === 'light') {
+                document.documentElement.classList.add('light-theme');
+                themeIcon.className = "fa-solid fa-moon"; // Si está claro, el botón muestra la luna para pasar a oscuro
+            } else {
+                document.documentElement.classList.remove('light-theme');
+                themeIcon.className = "fa-solid fa-sun"; // Si está oscuro, el botón muestra el sol para pasar a claro
+            }
+        }
+        
+        function toggleTheme() {
+            currentTheme = (currentTheme === 'dark') ? 'light' : 'dark';
+            localStorage.setItem('app_theme', currentTheme);
+            applyTheme();
+        }
+        
+        // Inicializar tema al cargar la página
+        applyTheme();
+
+        // --- LÓGICA DE LA APLICACIÓN ---
         function updateTimeIcon() {
             if (taskDatetime.value) { timeIcon.classList.add('active'); } 
             else { timeIcon.classList.remove('active'); }
@@ -383,13 +443,20 @@
         function renderTasks() {
             taskList.innerHTML = '';
             const ahora = new Date();
-            const hoyStr = ahora.toISOString().split('T')[0]; 
+            
+            const offset = ahora.getTimezoneOffset() * 60000;
+            const hoyStr = new Date(ahora.getTime() - offset).toISOString().split('T')[0]; 
             
             let filteredTasks = tasks.filter(task => {
                 if (currentFilter === 'done') return task.completed;
+                if (currentFilter === 'all') {
+                    if (task.completed) return false;
+                    if (!task.datetime) return true;
+                    return task.datetime.startsWith(hoyStr) || new Date(task.datetime) < ahora;
+                }
                 if (currentFilter === 'today') {
-                    if (!task.datetime) return false;
-                    return task.datetime.startsWith(hoyStr) && !task.completed;
+                    if (task.completed || !task.datetime) return false;
+                    return task.datetime.startsWith(hoyStr);
                 }
                 return true; 
             });
